@@ -38,6 +38,11 @@ class TrinomialTree:
         )
         self.alpha = self.calculate_alpha()
         self.root = Node(market.spot_price, self)  # S_0...
+        self.root.add_child_node()
+
+    # def _init_nodes(self)->None:
+    #     while self.root.next_mid_node is None:
+    #         self.root.add_child_node()
 
     def calculate_alpha(self) -> float:
         return exp(self.market.volatility * sqrt(3 * self.delta_t))  # type: ignore
