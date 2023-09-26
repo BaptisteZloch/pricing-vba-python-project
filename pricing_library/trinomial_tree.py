@@ -1,8 +1,8 @@
 from datetime import datetime
-from math import exp, sqrt
 from pricing_library.node import Node
 from pricing_library.market import MarketData
 from pricing_library.option import Option
+from pricing_library.utils import calculate_alpha
 
 
 class TrinomialTree:
@@ -36,13 +36,17 @@ class TrinomialTree:
         self.delta_t = abs(
             ((self.option.maturity_date - pricing_date).days / n_steps) / self.n_days
         )
-        self.alpha = self.calculate_alpha()
+        self.alpha = calculate_alpha(self.market.volatility, self.delta_t)
         self.root = Node(market.spot_price, self)  # S_0...
-        self.root.add_child_node()
+        for _ in range(self.n_steps):
+            self.root.add_child_node()
 
     # def _init_nodes(self)->None:
     #     while self.root.next_mid_node is None:
     #         self.root.add_child_node()
 
-    def calculate_alpha(self) -> float:
-        return exp(self.market.volatility * sqrt(3 * self.delta_t))  # type: ignore
+    def __str__(self) -> str:
+        return f"TrinomialTree<{self.n_steps} steps, delta_t: {self.delta_t:.3f}, alpha: {self.alpha:.3f}, root: {self.root}>"
+
+    def __repr__(self) -> str:
+        return self.__str__()
