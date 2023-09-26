@@ -8,6 +8,9 @@ from pricing_library.utils import discount_value, calculate_forward_price
 class Node:
     node_up: Optional[Node] = None
     node_down: Optional[Node] = None
+    next_lower_node: Optional[Node] = None
+    next_upper_node: Optional[Node] = None
+    next_mid_node: Optional[Node] = None
 
     def __init__(
         self,
@@ -123,7 +126,15 @@ class Node:
         ), "Prices second order must be the variance."
 
     def __str__(self) -> str:
-        return f"Node<spot price: {self.spot_price:.2f}, next mid price: : {self.forward_price:.2f}, next up price: {self.up_price:.2f}, next down price: {self.down_price:.2f}, variance: {self.variance:.2f}, p down: {self.p_down:.2f}, p mid: {self.p_mid:.2f}, p up: {self.p_up:.2f}, option value: {self.option_value:.2f}>"
+        result_str = f"Node<spot price: {self.spot_price:.2f}, next mid price: : {self.forward_price:.2f}, next up price: {self.up_price:.2f}, next down price: {self.down_price:.2f}, variance: {self.variance:.2f}, p down: {self.p_down:.2f}, p mid: {self.p_mid:.2f}, p up: {self.p_up:.2f}, option value: {self.option_value:.2f}"
+        if self.next_mid_node is not None:
+            result_str += f",\n next mid node: {self.next_mid_node}"
+        if self.next_lower_node is not None:
+            result_str += f",\n next lower node: {self.next_lower_node}"
+        if self.next_upper_node is not None:
+            result_str += f",\n next upper node: {self.next_upper_node}"
+        result_str += ">"
+        return result_str
 
     def __repr__(self) -> str:
         return f"Node<spot price: {self.spot_price:.2f}, next mid price: : {self.forward_price:.2f}, next up price: {self.up_price:.2f}, next down price: {self.down_price:.2f}, variance: {self.variance:.2f}, p down: {self.p_down:.2f}, p mid: {self.p_mid:.2f}, p up: {self.p_up:.2f}, option value: {self.option_value:.2f}>"

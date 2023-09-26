@@ -38,12 +38,8 @@ class TrinomialTree:
         )
         self.alpha = calculate_alpha(self.market.volatility, self.delta_t)
         self.root = Node(market.spot_price, self)  # S_0...
-        for _ in range(self.n_steps):
-            self.root.add_child_node()
 
-    # def _init_nodes(self)->None:
-    #     while self.root.next_mid_node is None:
-    #         self.root.add_child_node()
+        self.root.add_child_node()
 
     def __str__(self) -> str:
         return f"TrinomialTree<{self.n_steps} steps, delta_t: {self.delta_t:.3f}, alpha: {self.alpha:.3f}, root: {self.root}>"
