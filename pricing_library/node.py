@@ -1,4 +1,5 @@
 from __future__ import annotations
+from types import NoneType
 from typing import Optional
 from math import exp
 import numpy as np
@@ -16,33 +17,57 @@ class Node:
         self,
         spot_price: float,
         tree,
+        proba_total: Optional[float] = None,
     ) -> None:
         self.tree = tree
-        self.spot_price = spot_price
-        self.forward_price = calculate_forward_price(
+        self.spot_price: float = spot_price
+        self.forward_price: float = calculate_forward_price(
             self.spot_price, tree.market.interest_rate, self.tree.delta_t
         )
-        self.up_price = self.tree.alpha * self.forward_price
-        self.down_price = self.forward_price / self.tree.alpha
+        self.up_price: float = self.tree.alpha * self.forward_price
+        self.down_price: float = self.forward_price / self.tree.alpha
 
-        self.variance = self.calculate_variance()
+        self.variance: float = self.calculate_variance()
 
-        self.p_down = self.calculate_p_down()
-        self.p_up = self.calculate_p_up()
-        self.p_mid = self.calculate_p_mid()
+        self.p_down: float = self.calculate_p_down()
+        self.p_up: float = self.calculate_p_up()
+        self.p_mid: float = self.calculate_p_mid()
 
         self.option_value = self.calculate_option_value()
+        self.proba_total = 0
 
-    def add_child_node(self):
+    def compute_next_nodes(self) -> Node:
         n = Node(self.forward_price, self.tree)
         self.next_mid_node = n
-        n_up = Node(self.up_price, self.tree)
+
+        if isinstance(self.next_upper_node, NoneType):
+            n_up = Node(self.up_price, self.tree)
+        else:
+            n_up = self.next_upper_node
+
         self.next_upper_node = n_up
+
+        self.next_upper_node.node_down = n
         n.node_up = n_up
 
-        n_down = Node(self.down_price, self.tree)
+        if isinstance(self.next_lower_node, NoneType):
+            n_down = Node(self.down_price, self.tree)
+        else:
+            n_down = self.next_lower_node
         self.next_lower_node = n_down
-        n.node_down = n_up
+
+        self.next_lower_node.node_up = n
+        n.node_down = n_down
+
+        return self.next_mid_node
+
+    # def compute_upper_generation(self):
+    #     n = Node(self.up_price, self.tree)
+    #     self.next_upper_node = n
+    #     n.node_up = self.node_up.next_upper_node
+    #     n.node_down = self.next_mid_node.next_upper_node
+    #     n.node_up.next_lower_node = n
+    #     n.node_down.next_lower_node = n
 
     def calculate_option_value(
         self,
