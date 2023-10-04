@@ -1,5 +1,5 @@
 from __future__ import annotations
-from datetime import datetime
+from datetime import datetime, timedelta
 from types import NoneType
 from typing import Optional
 from math import exp
@@ -24,8 +24,17 @@ class Node:
         time_step: Optional[datetime] = None,
         proba_total: Optional[float] = None,
     ) -> None:
-        self.time = time_step
+        self.time_step = time_step
         self.tree = tree
+        if (
+            self.time_step is not None
+            and self.time_step + timedelta(days=self.tree.delta_t * self.tree.n_days)
+            >= self.tree.market.dividend_ex_date
+            >= self.time_step
+        ):
+            self.spot_price = spot_price - self.tree.market.dividend_price
+        else:
+            self.spot_price = spot_price
         self.spot_price: float = spot_price
         self.forward_price: float = calculate_forward_price(
             self.spot_price, tree.market.interest_rate, self.tree.delta_t
@@ -95,7 +104,7 @@ class Node:
         ), "Prices second order must be the variance."
 
     def __str__(self) -> str:
-        result_str = f"Node<spot price: {self.spot_price:.2f}, next mid price: : {self.forward_price:.2f}, next up price: {self.up_price:.2f}, next down price: {self.down_price:.2f}, variance: {self.variance:.2f}, p down: {self.p_down:.2f}, p mid: {self.p_mid:.2f}, p up: {self.p_up:.2f}, option value: {self.option_price:.2f}"
+        result_str = f"Node<spot price: {self.spot_price:.2f}, next mid price: : {self.forward_price:.2f}, next up price: {self.up_price:.2f}, next down price: {self.down_price:.2f}, variance: {self.variance:.2f}, p down: {self.p_down:.2f}, p mid: {self.p_mid:.2f}, p up: {self.p_up:.2f}, current date: {self.time_step}, option value: {self.option_price:.2f}"
         if self.next_mid_node is not None:
             result_str += f"\n next mid node: {self.next_mid_node}"
         if self.next_lower_node is not None:
@@ -106,4 +115,4 @@ class Node:
         return result_str
 
     def __repr__(self) -> str:
-        return f"Node<spot price: {self.spot_price:.2f}, next mid price: : {self.forward_price:.2f}, next up price: {self.up_price:.2f}, next down price: {self.down_price:.2f}, variance: {self.variance:.2f}, p down: {self.p_down:.2f}, p mid: {self.p_mid:.2f}, p up: {self.p_up:.2f}, option value: {self.option_price:.2f}>"
+        return f"Node<spot price: {self.spot_price:.2f}, next mid price: : {self.forward_price:.2f}, next up price: {self.up_price:.2f}, next down price: {self.down_price:.2f}, variance: {self.variance:.2f}, p down: {self.p_down:.2f}, p mid: {self.p_mid:.2f}, p up: {self.p_up:.2f}, current date: {self.time_step}, option value: {self.option_price:.2f}>"
