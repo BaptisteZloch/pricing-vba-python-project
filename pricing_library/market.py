@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class MarketData:
+class Market:
     """Construct a market object.
 
     Attributes:

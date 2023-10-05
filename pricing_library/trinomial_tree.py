@@ -1,10 +1,14 @@
 from datetime import datetime, timedelta
-from types import NoneType
+
 from typing import Optional
 from pricing_library.node import Node
-from pricing_library.market import MarketData
+from pricing_library.market import Market
 from pricing_library.option import Option
-from pricing_library.utils import calculate_alpha, calculate_discount_factor
+from pricing_library.utils import (
+    calculate_alpha,
+    calculate_discount_factor,
+    measure_time,
+)
 
 
 class TrinomialTree:
@@ -12,7 +16,7 @@ class TrinomialTree:
 
     def __init__(
         self,
-        market: MarketData,
+        market: Market,
         pricing_date: datetime,
         n_steps: int,
     ) -> None:
@@ -20,15 +24,15 @@ class TrinomialTree:
 
         Args:
         ----
-            market (MarketData): The MarketData object containing market informations.
+            market (Market): The Market object containing market informations.
             pricing_date (datetime): Pricing date of the option, could be today but must be before maturity_date.
             n_steps (int): The number of steps in the trinomial tree.
         """
         self.market = market
-
         self.n_steps = n_steps
         self.pricing_date = pricing_date
 
+    @measure_time
     def price(self, opt: Option) -> float:
         """Option pricing method for the trinomial tree.
 
@@ -52,6 +56,7 @@ class TrinomialTree:
         self.__build_tree()
         return self.root.price(opt)
 
+    @measure_time
     def __build_tree(self) -> None:
         """build from root to leaves for each node, compute next generation if next generation is not None, compute next generation if next generation is None, stop"""
         self.root = Node(self.market.spot_price, self, self.pricing_date)
@@ -124,7 +129,7 @@ class TrinomialTree:
         """
         current_node.next_lower_node = current_node.node_down.next_mid_node
         current_node.next_mid_node = current_node.node_down.next_upper_node
-        current_node.next_upper_node = Node(current_node.down_price, self, date_time)
+        current_node.next_upper_node = Node(current_node.up_price, self, date_time)
 
         current_node.next_upper_node.node_down = current_node.next_mid_node
         current_node.next_mid_node.node_up = current_node.next_upper_node

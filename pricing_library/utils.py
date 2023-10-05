@@ -1,4 +1,6 @@
 from math import exp, sqrt
+from time import time
+from typing import Callable
 
 
 def discount_value(
@@ -21,3 +23,44 @@ def calculate_forward_price(
 
 def calculate_alpha(volatility: float, delta_t: float, factor: int = 3) -> float:
     return exp(volatility * sqrt(factor * delta_t))  # type: ignore
+
+
+def calculate_variance(
+    spot_price: float, interest_rate: float, volatility: float, delta_t: float
+) -> float:
+    return (
+        (spot_price**2)
+        * exp(2 * interest_rate * delta_t)
+        * (exp((volatility**2) * delta_t) - 1)
+    )
+
+
+def calculate_down_probability(
+    forward_price: float, esperance: float, variance: float, alpha: float
+) -> float:
+    return (
+        forward_price ** (-2) * (variance + esperance**2)
+        - 1
+        - (alpha + 1) * ((esperance ** (-1)) * forward_price - 1)
+    ) / ((1 - alpha) * ((alpha ** (-2)) - 1))
+
+
+def calculate_up_probability(down_probability: float, alpha: float) -> float:
+    return down_probability / alpha
+
+
+def calculate_mid_probability(up_probability: float, down_probability: float) -> float:
+    return 1 - (down_probability + up_probability)
+
+
+def measure_time(func: Callable) -> Callable:
+    def wrapper(*args, **kwargs):
+        start_time = time()
+        result = func(*args, **kwargs)
+        end_time = time()
+        print(
+            f"Elapsed time the {func.__name__} function: {end_time - start_time:.2f} seconds"
+        )
+        return result
+
+    return wrapper

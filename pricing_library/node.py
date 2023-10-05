@@ -5,7 +5,13 @@ from typing import Optional
 from math import exp
 import numpy as np
 from pricing_library.option import Option
-from pricing_library.utils import calculate_forward_price
+from pricing_library.utils import (
+    calculate_down_probability,
+    calculate_forward_price,
+    calculate_mid_probability,
+    calculate_up_probability,
+    calculate_variance,
+)
 
 
 class Node:
@@ -22,33 +28,33 @@ class Node:
         spot_price: float,
         tree,
         time_step: Optional[datetime] = None,
-        proba_total: Optional[float] = None,
+        # proba_total: Optional[float] = None,
     ) -> None:
         self.time_step = time_step
         self.tree = tree
+        self.spot_price = spot_price
+        self.forward_price: float = calculate_forward_price(
+            self.spot_price, tree.market.interest_rate, self.tree.delta_t
+        )
         if (
             self.time_step is not None
             and self.time_step + timedelta(days=self.tree.delta_t * self.tree.n_days)
             >= self.tree.market.dividend_ex_date
             >= self.time_step
         ):
-            self.spot_price = spot_price - self.tree.market.dividend_price
+            self.esperance = self.forward_price
+            self.forward_price: float = (
+                self.forward_price - self.tree.market.dividend_price
+            )
         else:
-            self.spot_price = spot_price
-        self.spot_price: float = spot_price
-        self.forward_price: float = calculate_forward_price(
-            self.spot_price, tree.market.interest_rate, self.tree.delta_t
-        )
+            self.esperance = self.forward_price
+
         self.up_price: float = self.tree.alpha * self.forward_price
         self.down_price: float = self.forward_price / self.tree.alpha
 
-        self.variance: float = self.calculate_variance()
+        self.__calculate_probabilities()
 
-        self.p_down: float = self.calculate_p_down()
-        self.p_up: float = self.calculate_p_up()
-        self.p_mid: float = self.calculate_p_mid()
-
-        self.proba_total = 0
+        # self.proba_total = 0
         type(self).nb_nodes = type(self).nb_nodes + 1
 
     def price(self, opt: Option) -> float:
@@ -65,30 +71,25 @@ class Node:
             self.option_price = max(self.option_price, opt.payoff(self.spot_price))
         return self.option_price  # type: ignore
 
-    def calculate_variance(self) -> float:
-        return (
-            (self.spot_price**2)
-            * exp(2 * self.tree.market.interest_rate * self.tree.delta_t)
-            * (exp(self.tree.market.volatility**2 * self.tree.delta_t) - 1)
+    def __calculate_variance(self) -> None:
+        self.variance = calculate_variance(
+            self.spot_price,
+            self.tree.market.interest_rate,
+            self.tree.market.volatility,
+            self.tree.delta_t,
         )
 
-    def calculate_p_up(
-        self,
-    ) -> float:
-        return self.p_down / self.tree.alpha
+    def __calculate_probabilities(self, force_check: bool = False) -> None:
+        self.__calculate_variance()
+        self.p_down = calculate_down_probability(
+            self.forward_price, self.esperance, self.variance, self.tree.alpha
+        )
+        self.p_up = calculate_up_probability(self.p_down, self.tree.alpha)
+        self.p_mid = calculate_mid_probability(self.p_down, self.p_up)
+        if force_check is True:
+            self.__check_conditions()
 
-    def calculate_p_mid(self) -> float:
-        return 1 - (self.p_down + self.p_up)
-
-    def calculate_p_down(self) -> float:
-        return (
-            self.forward_price ** (-2) * (self.variance + self.forward_price**2)
-            - 1
-            - (self.tree.alpha + 1)
-            * (self.forward_price ** (-1) * self.forward_price - 1)
-        ) / ((1 - self.tree.alpha) * (self.tree.alpha ** (-1) - 1))
-
-    def check_conditions(self):
+    def __check_conditions(self):
         assert self.p_down + self.p_up + self.p_mid == 1, "Probabilities must sum to 1."
         assert (
             self.down_price * self.p_down
