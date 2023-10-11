@@ -40,9 +40,9 @@ def calculate_down_probability(
     forward_price: float, esperance: float, variance: float, alpha: float
 ) -> float:
     return (
-        forward_price ** (-2) * (variance + esperance**2)
+        (forward_price ** (-2)) * (variance + esperance**2)
         - 1
-        - (alpha + 1) * ((esperance ** (-1)) * forward_price - 1)
+        - (alpha + 1) * ((forward_price ** (-1)) * esperance - 1)
     ) / ((1 - alpha) * ((alpha ** (-2)) - 1))
 
 
