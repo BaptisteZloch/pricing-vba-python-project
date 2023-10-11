@@ -1,12 +1,16 @@
 from datetime import datetime, timedelta
-
+import networkx as nx
+import matplotlib.pyplot as plt
 from typing import Optional
+
+from tqdm import tqdm
 from pricing_library.node import Node
 from pricing_library.market import Market
 from pricing_library.option import Option
 from pricing_library.utils import (
     calculate_alpha,
     calculate_discount_factor,
+    display_tree,
     measure_time,
 )
 
@@ -33,7 +37,7 @@ class TrinomialTree:
         self.pricing_date = pricing_date
 
     @measure_time
-    def price(self, opt: Option) -> float:
+    def price(self, opt: Option, draw_tree: bool = False) -> float:
         """Option pricing method for the trinomial tree.
 
         Args:
@@ -54,7 +58,14 @@ class TrinomialTree:
             -self.market.interest_rate, self.delta_t
         )
         self.__build_tree()
-        return self.root.price(opt)
+        price = self.root.price(opt)
+        # if draw_tree is True:
+        #     g = display_tree(self.root)
+        #     pos = nx.spring_layout(g, seed=42)  # You can use other layout algorithms
+        #     nx.draw(g, pos, with_labels=True, node_color="lightblue")
+        #     plt.title("Trinomial Tree")
+        #     plt.show()
+        return price
 
     @measure_time
     def __build_tree(self) -> None:
@@ -62,7 +73,12 @@ class TrinomialTree:
         self.root = Node(self.market.spot_price, self, self.pricing_date)
         current_mid = self.root
         current_date = self.pricing_date
-        for _ in range(self.n_steps):
+        for _ in tqdm(
+            range(self.n_steps),
+            total=self.n_steps,
+            desc="Building tree...",
+            leave=False,
+        ):
             current_date = current_date + timedelta(days=self.delta_t * self.n_days)
             current_mid = self.__construct_next_generation(current_mid, current_date)
 
@@ -84,13 +100,13 @@ class TrinomialTree:
 
         current_upper_neighbours = prev_trunc_node.node_up
         while current_upper_neighbours is not None:
-            self.__compute_next_nodes_upward(current_upper_neighbours)
+            self.__compute_next_nodes_upward(current_upper_neighbours, date_time)
             current_upper_neighbours = current_upper_neighbours.node_up
 
         current_lower_neighbours = prev_trunc_node.node_down
 
         while current_lower_neighbours is not None:
-            self.__compute_next_nodes_downward(current_lower_neighbours)
+            self.__compute_next_nodes_downward(current_lower_neighbours, date_time)
             current_lower_neighbours = current_lower_neighbours.node_down
 
         return prev_trunc_node.next_mid_node  # type: ignore

@@ -1,9 +1,7 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
-from types import NoneType
 from typing import Optional
-from math import exp
-import numpy as np
+from math import log10
 from pricing_library.option import Option
 from pricing_library.utils import (
     calculate_down_probability,
@@ -30,6 +28,7 @@ class Node:
         time_step: Optional[datetime] = None,
         # proba_total: Optional[float] = None,
     ) -> None:
+        type(self).nb_nodes = type(self).nb_nodes + 1
         self.time_step = time_step
         self.tree = tree
         self.spot_price = spot_price
@@ -53,9 +52,29 @@ class Node:
         self.down_price: float = self.forward_price / self.tree.alpha
 
         self.__calculate_probabilities()
+        # print(self)
 
         # self.proba_total = 0
-        type(self).nb_nodes = type(self).nb_nodes + 1
+
+    def __calculate_probabilities(self, force_check: bool = True) -> None:
+        """Function that calculates the probabilities (for the next up down and mid nodes) of the current node. Note that this function also compute the variance of the current node price. This function MUST be called directly in the constructor and after the forward price has been calculated
+
+        Args:
+            force_check (bool, optional): Whether you want to check the conditions on the probabilities, the esperance and the variance. Defaults to False.
+        """
+        self.variance = calculate_variance(
+            self.spot_price,
+            self.tree.market.interest_rate,
+            self.tree.market.volatility,
+            self.tree.delta_t,
+        )
+        self.p_down = calculate_down_probability(
+            self.forward_price, self.esperance, self.variance, self.tree.alpha
+        )
+        self.p_up = calculate_up_probability(self.p_down, self.tree.alpha)
+        self.p_mid = calculate_mid_probability(self.p_down, self.p_up)
+        if force_check is True:
+            self.__check_conditions()
 
     def price(self, opt: Option) -> float:
         if self.next_mid_node is None:  # End of tree -> leaf
@@ -71,38 +90,34 @@ class Node:
             self.option_price = max(self.option_price, opt.payoff(self.spot_price))
         return self.option_price  # type: ignore
 
-    def __calculate_variance(self) -> None:
-        self.variance = calculate_variance(
-            self.spot_price,
-            self.tree.market.interest_rate,
-            self.tree.market.volatility,
-            self.tree.delta_t,
-        )
-
-    def __calculate_probabilities(self, force_check: bool = False) -> None:
-        self.__calculate_variance()
-        self.p_down = calculate_down_probability(
-            self.forward_price, self.esperance, self.variance, self.tree.alpha
-        )
-        self.p_up = calculate_up_probability(self.p_down, self.tree.alpha)
-        self.p_mid = calculate_mid_probability(self.p_down, self.p_up)
-        if force_check is True:
-            self.__check_conditions()
-
-    def __check_conditions(self):
-        assert self.p_down + self.p_up + self.p_mid == 1, "Probabilities must sum to 1."
+    def __check_conditions(self, tolerance: float = 1e-4) -> None:
         assert (
+            tolerance > 0 and tolerance < 1
+        ), "Tolerance must be strictly positive and strictly inferior to 1"
+        rounding_factor = int(log10(tolerance))
+        proba_total = self.p_down + self.p_up + self.p_mid
+        assert (
+            proba_total == 1
+        ), f"Generation {self.time_step} |Probabilities must sum to 1 | probabilities sum: {proba_total}"
+        expected_price = (
             self.down_price * self.p_down
             + self.forward_price * self.p_mid
             + self.up_price * self.p_up
-            == self.forward_price
-        ), "Prices first order moment must be the forward price."
-        assert (
+        )
+        assert round(expected_price, rounding_factor) == round(
+            self.forward_price, rounding_factor
+        ), f"Generation {self.time_step} | Prices first order moment must be the forward price | Expected price: {expected_price} forward price: {self.forward_price}"
+        second_moment = (
             self.p_down * self.down_price**2
             + self.p_mid * self.forward_price**2
             + self.p_up * self.up_price**2
-            == self.variance + self.forward_price**2
-        ), "Prices second order must be the variance."
+        )
+        assert round(
+            second_moment,
+            rounding_factor,
+        ) == round(
+            self.variance + self.esperance**2, rounding_factor
+        ), f"Generation {self.time_step} | Prices second order must be the variance | second_moment: {second_moment} variance: {self.variance+ self.forward_price**2}"
 
     def __str__(self) -> str:
         result_str = f"Node<spot price: {self.spot_price:.2f}, next mid price: : {self.forward_price:.2f}, next up price: {self.up_price:.2f}, next down price: {self.down_price:.2f}, variance: {self.variance:.2f}, p down: {self.p_down:.2f}, p mid: {self.p_mid:.2f}, p up: {self.p_up:.2f}, current date: {self.time_step}, option value: {self.option_price:.2f}"
