@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import networkx as nx
 import matplotlib.pyplot as plt
-from typing import List, Optional, Tuple
+from typing import List, Literal, Optional, Tuple
 
 from tqdm import tqdm
 from pricing_library.node import Node
@@ -160,21 +160,27 @@ class TrinomialTree:
         current_node.next_lower_node.node_up = current_node.next_mid_node
         current_node.next_mid_node.node_down = current_node.next_lower_node
 
-    def __plot_tree(self) -> None:
-        """Display the tree using networkx library. If the number of steps is greater than 50, the tree will be unreadable."""
-        if self.n_steps < 50:
+    @measure_time
+    def __plot_tree(
+        self, label_to_plot: Literal["spot_price", "option_price"] = "spot_price"
+    ) -> None:
+        """Display the tree using networkx library. If the number of steps is greater than 20, the tree will be unreadable. This is a breadth-first tree traversal algorithm.
+
+        Args:
+            label_to_plot (Literal[&quot;spot_price&quot;, &quot;option_price&quot;], optional): _description_. Defaults to "option_price".
+        """
+
+        if self.n_steps < 20:
             G = nx.Graph()
             nodes: List[Tuple[Node, Optional[Node], int]] = [
                 (self.root, None, 0)
-            ]  # (current, parent, depth)
+            ]  # stack containing (current, parent, depth)
 
             while nodes:
                 current, parent, depth = nodes.pop()
                 G.add_node(current, pos=(current.spot_price, -depth))
                 if parent is not None:
                     G.add_edge(parent, current)
-
-                # Ajouter les nœuds enfants à la liste pour traitement ultérieur
                 if current.next_upper_node:
                     nodes.append((current.next_upper_node, current, depth + 1))
                 if current.next_mid_node:
@@ -184,7 +190,7 @@ class TrinomialTree:
 
             pos = nx.get_node_attributes(G, "pos")
             labels = {
-                node: f"{datetime.strftime(node.time_step, '%Y-%m-%d')}\n{node.spot_price:.2f}"
+                node: f"{datetime.strftime(node.time_step, '%Y-%m-%d')}\n{eval('node.'+label_to_plot):.2f}"
                 for node in G.nodes()
             }
 
@@ -203,7 +209,7 @@ class TrinomialTree:
             plt.show()
         else:
             print(
-                f"Tree is too big to be displayed. Number of steps: {self.n_steps} > 50"
+                f"Tree is too big to be displayed. Number of steps: {self.n_steps} > 20"
             )
 
     def __str__(self) -> str:

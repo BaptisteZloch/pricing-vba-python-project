@@ -56,7 +56,7 @@ class Node:
 
         # self.proba_total = 0
 
-    def __calculate_probabilities(self, force_check: bool = True) -> None:
+    def __calculate_probabilities(self, force_check: bool = False) -> None:
         """Function that calculates the probabilities (for the next up down and mid nodes) of the current node. Note that this function also compute the variance of the current node price. This function MUST be called directly in the constructor and after the forward price has been calculated
 
         Args:
@@ -72,7 +72,7 @@ class Node:
             self.forward_price, self.esperance, self.variance, self.tree.alpha
         )
         self.p_up = calculate_up_probability(self.p_down, self.tree.alpha)
-        self.p_mid = calculate_mid_probability(self.p_down, self.p_up)
+        self.p_mid = calculate_mid_probability(self.p_up, self.p_down)
         if force_check is True:
             self.__check_conditions()
 
