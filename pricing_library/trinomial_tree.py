@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import networkx as nx
 import matplotlib.pyplot as plt
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from tqdm import tqdm
 from pricing_library.node import Node
@@ -10,7 +10,6 @@ from pricing_library.option import Option
 from pricing_library.utils import (
     calculate_alpha,
     calculate_discount_factor,
-    display_tree,
     measure_time,
 )
 
@@ -55,16 +54,12 @@ class TrinomialTree:
         )
         self.alpha = calculate_alpha(self.market.volatility, self.delta_t)
         self.discount_factor = calculate_discount_factor(
-            -self.market.interest_rate, self.delta_t
+            self.market.interest_rate, self.delta_t
         )
         self.__build_tree()
         price = self.root.price(opt)
-        # if draw_tree is True:
-        #     g = display_tree(self.root)
-        #     pos = nx.spring_layout(g, seed=42)  # You can use other layout algorithms
-        #     nx.draw(g, pos, with_labels=True, node_color="lightblue")
-        #     plt.title("Trinomial Tree")
-        #     plt.show()
+        if draw_tree is True:
+            self.__plot_tree()
         return price
 
     @measure_time
@@ -164,6 +159,52 @@ class TrinomialTree:
 
         current_node.next_lower_node.node_up = current_node.next_mid_node
         current_node.next_mid_node.node_down = current_node.next_lower_node
+
+    def __plot_tree(self) -> None:
+        """Display the tree using networkx library. If the number of steps is greater than 50, the tree will be unreadable."""
+        if self.n_steps < 50:
+            G = nx.Graph()
+            nodes: List[Tuple[Node, Optional[Node], int]] = [
+                (self.root, None, 0)
+            ]  # (current, parent, depth)
+
+            while nodes:
+                current, parent, depth = nodes.pop()
+                G.add_node(current, pos=(current.spot_price, -depth))
+                if parent is not None:
+                    G.add_edge(parent, current)
+
+                # Ajouter les nœuds enfants à la liste pour traitement ultérieur
+                if current.next_upper_node:
+                    nodes.append((current.next_upper_node, current, depth + 1))
+                if current.next_mid_node:
+                    nodes.append((current.next_mid_node, current, depth + 1))
+                if current.next_lower_node:
+                    nodes.append((current.next_lower_node, current, depth + 1))
+
+            pos = nx.get_node_attributes(G, "pos")
+            labels = {
+                node: f"{datetime.strftime(node.time_step, '%Y-%m-%d')}\n{node.spot_price:.2f}"
+                for node in G.nodes()
+            }
+
+            nx.draw(
+                G,
+                pos,
+                labels=labels,
+                with_labels=True,
+                node_size=500,
+                node_color="lightblue",
+                font_size=8,
+                font_color="black",
+            )
+            plt.title("Arbre trinomial d'options")
+            plt.axis("off")
+            plt.show()
+        else:
+            print(
+                f"Tree is too big to be displayed. Number of steps: {self.n_steps} > 50"
+            )
 
     def __str__(self) -> str:
         return f"TrinomialTree<{self.n_steps} steps, delta_t: {self.delta_t:.3f}, alpha: {self.alpha:.3f}, root: {self.root}>"
