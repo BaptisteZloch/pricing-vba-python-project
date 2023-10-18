@@ -1,0 +1,48 @@
+Option Explicit
+
+'market
+Dim rate As Double
+Dim spot As Double
+Dim vol As Double
+Dim div As Double
+Dim div_ex_date As Date
+'Set rate = Range("rate").Value
+'Set spot = Range("spot").Value
+'Set vol = Range("vol").Value
+'Set div = Range("div").Value
+'Set div_ex_date = Range("div_ex_date").Value
+
+'model
+Dim pricing_date As Double
+Dim nb_setp As Double
+'Set pricing_date = Range("pricing_date").Value
+'Set nb_step = Range("nb_step").Value
+
+'option
+Dim strike As Double
+Dim type_option As String
+Dim type_exercise As String
+Dim maturity As Date
+'Set strike = Range("strike").Value
+'Set type_option = Range("type").Value
+'Set type_exercise = Range("exercise").Value
+'Set maturity = Range("maturity").Value
+
+
+
+Private Sub inserer_delta()
+    Dim delta_t As Double
+    delta_t = delta()
+    ThisWorkbook.Sheets("parametres").Range("delta_t").Value = delta_t
+End Sub
+
+Private Function alpha() As Double
+    Dim alpha As Double
+    alpha = Exp(vol * Sqr(3 * delta_t))
+End Function
+
+Private Function delta() As Double
+    Dim delta_t As Double
+    delta_t = ((maturity - pricing_date) / nb_step) / 365
+End Function
+

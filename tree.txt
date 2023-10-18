@@ -1,0 +1,375 @@
+principal facteur d'erreur sur les prix
+bonne syntaxe pour faire ca (type boolean)
+question sur modele
+syntaxe vba et python
+
+je dois constuire un arbre trinomial en python.
+Je dois utiliser des classes : market, option, tree et node.
+
+
+- Class Option:
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Literal
+
+
+@dataclass
+class Option:
+    """Construct an option object
+    Attributes:
+    ----
+        option_type (Literal[&quot;call&quot;, &quot;put&quot;]): The type of the option call or put.
+        exercise_type (Literal[&quot;am&quot;, &quot;eu&quot;]): The type of the exercise american or european.
+        strike_price (float): The strike price of the option.
+        maturity_date (datetime): The maturity date of the option.
+    """
+
+    option_type: Literal["call", "put"] #string de valeurs
+    exercise_type: Literal["am", "eu"] #string de valeurs
+    strike_price: float
+    maturity_date: datetime
+
+    def payoff(self,spot) -> float:
+        if self.option.option_type== "call":
+            return max(0 , spot - self.strike_price)
+        elif self.otpion.option_type == "put":
+            return max (0 , self.strike_price - spot)
+        else:
+            raise ValueError("Wrong input, please be careful, insert call or put")
+
+    #class option avec :
+    # - type opyion
+    # - type exercise
+    # - strike
+    # - maturity date
+
+- Class Market
+from datetime import datetime
+from dataclasses import dataclass
+
+
+@dataclass
+class Market:
+    """Construct a market object.
+
+    Attributes:
+    ----
+        interest_rate (float): The interest rates in percent.
+        volatility (float): The volatility in percent.
+        spot_price (float): The spot price of the underlying asset in dollars.
+        dividend_price (float): The dividend price in dollars.
+        dividend_ex_date (datetime): The dividend ex date.
+    """
+
+    interest_rate: float
+    volatility: float
+    #start_date: datetime
+    spot_price: float
+    dividend_price: float
+    dividend_ex_date: datetime
+
+    #declaration des variables dans des classes
+
+- Class node :
+
+from datetime import datetime
+from dataclasses import dataclass
+from class_pricing.class_option import Option
+from class_pricing.class_market import Market
+from class_pricing.class_tree import Tree
+from class_pricing.function import calculate_forward_factor, calculate_discount_factor, calculate_forward_price
+import numpy as np
+
+from scipy.stats import norm
+from math import exp, sqrt, log
+
+
+class Node:
+
+
+    def __init__(self,market,tree,spot_price:float):
+
+        self.tree=tree
+        self.market=market
+        self.spot_price=spot_price
+        self.forward_price = calculate_forward_price
+        (
+        self.spot_price, 
+        self.market.interest_rate, 
+        self.tree.delta_t
+        )
+       
+        # mettre dans init les autres trucs du bas genre esperance, variance, proba up mid and down
+    def calculate_all(self):
+        self.calculate_variance()
+        self.calculate_proba()
+        self.calculate_option()
+        self.calculate_check()
+
+        
+    def calculate_esperance(self)->float:
+        self.esperance=self.spot_price * calculate_forward_factor(self.market.interest_rate, self.tree.delta_t) - self.market.dividend_price
+        # calcul de l'esperance utile pour calcul des proba, et aussi pour verifier les conditions (voir calculate_check)
+        
+    def calculate_variance(self)-> float:
+        self.variance=(self.spot_price **2) * exp(2*self.market.interest_rate * self.tree.delta_t) * (exp(self.market.volatility**2 * self.tree.delta_t) -1)
+        # calcul de la variance utile pour calcul des proba, et aussi pour verifier les conditions (voir calculate_check)
+
+    def calculate_proba(self)->float:
+        self.proba_down= (1/self.forward_price**2)*((self.variance + self.esperance**2)- 1 -(1/self.forward_price * self.forward_price - 1)/(1-self.tree.alpha)*((1/self.tree.alpha**2)-1))
+        self.proba_up= self.proba_down/self.tree.alpha
+        self.proba_mid=1 - self.proba_down - self.proba_up
+        # calcul des différentes proba, c'est à dire proba pour aller vers état up, mid et odwn
+
+    def calculate_option(self) -> float:
+        self.up_price = self.spot_price * self.tree.alpha
+        self.down_price = self.spot_price / self.tree.alpha
+        self.mid_price = self.forward_price
+        # calcul des prix de l'option
+        # S_u = S * alpha ... -> T
+        # S_d = S / alpha ... -> T
+        # S_m = Fwd ... -> T
+
+    def calculate_check(self):
+        if self.proba_down + self.proba_mid + self.proba_up != 1:
+            raise ValueError('The sum of the probabilities down + mid + up must be equal to 1, please look at node class')
+            #si somme des proba différent de 1 -> error 
+        elif (self.down_price* self.proba_down + self.mid_price * self.proba_mid + self.up_price + self.proba_up) != self.forward_price:
+            raise ValueError('Moment of order 1 is not verified')
+            # it good : self.forward_price = self.esperance
+            # Moment d'ordre 1:
+        elif (self.down_price**2 * self.proba_down + self.mid_price**2 * self.proba_mid + self.up_price**2 + self.proba_up) != self.variance + self.esperance **2: 
+            raise ValueError('Moment of order 2 is not verified')
+        
+
+        
+    # def calculate_option_value(self) -> float :
+    #     #arranger calculate_option avec calculate_option_type afin de compute au bon endroit
+    #     if next_node = "up":
+    #         self.option_value = self.up_price
+    #     elif next_node= "down":
+    #         self.option_value=self.down_price
+    #     elif next_node= "mid":
+    #         self.option_value=self.mid_price
+    #     else:
+    #         raise ValueError("You may have a problem, please look")
+    
+
+    def price (self, option:Option) -> float:
+        if self.next_mid is None: #quand on se retrouve a T
+            self.option_value = option.payoff(self.spot_price)
+
+        elif self.option_value is None: #[0 , T-1]
+            self.option_value = calculate_discount_factor(self.market.interest_rate, self.tree.delta_t)*(
+            self.proba_up * self.up_price + 
+            self.proba_mid * self.mid_price + 
+            self.proba_down * self.down_price
+            ) #exp (-r * delta_t)* [proba pondéré par prix]
+        elif option.option_type == "am":
+            self.option_value= max(self.option_value, option.payoff(self.spot_price)) #prend le max entre VI et valeur du noeud
+        else :
+            raise ValueError("Problem about the function price, please look at node class")
+
+        #return self.option_value
+                                                            
+
+    def __str__(self) -> str:
+        result_node = "Node class -\n"
+        result_node += f"  Spot Price: {self.spot_price:.2f}\n"
+        result_node += f"  Forward Price: {self.forward_price:.2f}\n"
+        result_node += f"  Variance: {self.variance:32f}\n"
+        result_node += f"  Esperance: {self.esperance:.3f}\n"
+        result_node += f"  Proba Up: {self.proba_up:.3f}\n"
+        result_node += f"  Proba Mid: {self.proba_mid:.3f}\n"
+        result_node += f"  Proba Down: {self.proba_down:.3f}\n"
+        result_node += f"  Option Value: {self.option_value:.2f}\n"
+        return result_node
+
+
+- class tree : ( que je n'arrive pas à finir)
+from datetime import datetime
+from dataclasses import dataclass
+from class_pricing.class_option import Option
+from class_pricing.class_market import Market
+from class_pricing.class_node import Node
+import numpy as np
+import math
+from datetime import timedelta
+import datetime
+from scipy.stats import norm
+from math import exp, sqrt, log
+from class_pricing.function import calculate_alpha, calculate_delta_t, 
+
+
+class Tree:
+    nb_days=365
+
+
+    def __init__(self,
+    market:Market, 
+    option:Option, 
+    pricing_date : datetime, 
+    nb_steps : int
+    ):
+        
+        self.option = option
+        self.market = market
+        self.nb_steps = nb_steps
+        self.pricing_date = pricing_date
+        self.root=Node(self,self.market.spot_price)
+
+        if pricing_date>self.option.maturity_date:
+            raise ValueError("Pricing date must be before the maturity date")
+        else:
+            self.delta_t = calculate_delta_t(self.option.maturity_date, self.pricing_date, self.nb_steps, self.nb_days)
+            #=((maturity_date-pricing_date)/nb_steps)/365
+            #why 365 ? to have the number in year, i.e x/365
+
+        self.alpha = calculate_alpha(self.market.volatility, self.delta_t, sqrt(3))
+
+        self.build_tree()
+
+
+    def build_tree(self):
+        n=self.root
+        for i in range(self.nb_steps):
+            n=self.build_node_column(n)
+
+
+mais je n'arrive pas a constuire la class tree...
+je me suis note les methodes suivantes:
+1) root = prix spot : premier point en t=0
+2) next_gen : root permet de créer 3 noeuds sur période suivant 
+   (down, mid, up)
+3) connect_node : connecte up et down avec mid
+4) ensuite on va sur le prochain next_mid, qui va alors construire 
+   next_gen (voir etape1), boucle for qui avance sur la longueur
+5) probleme arrive, des prix vont etre en commun des que t=2, 
+   il faut alors voir voir si mid a up et down avec l'aide d'une boucle 
+   while qui va verifier sur la largeur des noeuds
+6) verifier que tout marche
+
+pour info j'ai aussi des fonctions qui m'aident comme ci dessous :
+from math import exp, sqrt
+import math
+from datetime import datetime
+from scipy.stats import norm
+from class_pricing.class_option import Option
+from class_pricing.class_market import Market
+from class_pricing.class_tree import Tree
+
+
+'''
+Ensemble des definitions utiles pour les autres classes
+'''
+
+### Forward
+def calculate_forward_price(spot_price, interest_rates, delta_t) -> float:
+    return spot_price * calculate_forward_factor (interest_rates, delta_t)
+
+def calculate_forward_factor(interest_rates: float, delta_t: float) -> float:
+    return exp(interest_rates * delta_t)  # = S_0 * exp(r * delta_t) avec S0 dans la cass node
+
+
+### Discount
+def calculate_discount_price(spot_price, interest_rates: float, delta_t: float) -> float:
+    return spot_price * calculate_discount_factor(interest_rates, delta_t)
+
+def calculate_discount_factor(interest_rates: float, delta_t: float) -> float:
+    return exp(interest_rates * delta_t)  # exp(-r * delta_t) avec S0 dans la cass node 
+
+
+### Delta_t
+def calculate_delta_t(maturity_date:datetime, pricing_date:datetime,nb_steps:int, nb_days:int) -> float:
+    return ((maturity_date - pricing_date)/nb_steps) / nb_days
+    # delta_t = ((date_maturite - date_pricing)/ nb_steps)/365
+    #il calcule le facteur entre chaque noeud selon nos dates d'arrivées et depart
+    # on divise le tout par le nb de steps pour subdivisions
+    #enfin on divise par 365 pour avoir sous format jour
+
+
+### Alpha
+def calculate_alpha(volatility:float, delta_t:float, mutliplicateur:float) -> float:
+    return exp (volatility * mutliplicateur * sqrt (delta_t))
+    #alpha = exp (sigma * multiplicateur * racine(delta_t)), avec souvent mutliplicateur = racine (3)
+
+
+def calculate_norm(x : float) ->float:
+    return norm.cdf(x)
+    #sert pour le cauclu de d1 et d2
+
+
+Peux tu donc m'aider a finir la class tree stp ? je n'ai pas le droit d'utiliser des listes ou matrice.
+j'aimerais que tu m'aides a constuire de la facon suivante :
+
+- def build_tree
+- def build_node_column
+- def build_block
+- def move_up
+- def get_mid
+- def is_close (jje suis à un nœud, je regarde l’intervalle avec le nœud au-dessus et en dessous )
+
+
+le prof nous a donne les indications suivantes mais je comprends pas tout ce qyu'il faut faire et aussi la logique.
+
+Def BuildTree
+	n = self.root
+	For range (N):
+		n = Build_node_column(n)
+
+def build_node_column( n:Node ) -> Node:
+	tr_next = Node( n:forward, self )
+	build_block( n, tr_next )
+	n1 = n
+	while n1.down Is not null:
+	n1 = n1.down
+		build_block( n1, tr_next)
+	n1 = n
+	while n1.up Is not null:
+		n1 = n1.up
+		build_block( n1, tr_next)
+
+def build_block( n1:Node, next:Node):
+	fwd = self.forward 
+	nmid = self.getmid( next, fwd)
+	if nmid.down_node is null:
+		ndown = Node( nmid.spot / alpha)
+	else:
+		ndown = nmid.down_node
+	if nmid.up_node is null:
+		nup = Node( nmid.spot * alpha)
+		nup.down_node = nmid
+		nmid.up_node = nup
+	else:
+		nup = mid.up_node
+
+	self.next_mid = n_mid
+	…
+	Proba
+
+Def move_up() -> Node:
+	If self.up_node is null:
+		nup = Node(self.spot * alpha)
+	…
+	Return nup
+
+Def get_mid( next:Node ) -> Node:
+	Fwd = self.forward()
+	If next.is_close(fwd):
+		Return next
+	Elif fwd > self.spot:
+		While not next.is_close(fwd):
+			next = next.move_up()
+	else:
+		while not next.is_close(fwd):
+			next = next.move_down()
+	return next
+
+
+Def Is_close (fwd) -> bool:
+	Return self.spot * (1 + 1/self.t.alpha)/2 ≤ fwd 
+		≤ self.spot * ( 1+ self.t.alpha)/2
+
+
+
+pourrrais tu m'aider stp de maniere globale a construire cette classe ? et aussi a renommer les variables par rapport à mes appleations dans mes precedentes class stp

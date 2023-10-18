@@ -1,2 +1,4 @@
 black
 ipykernel
+numpy
+scipy.stats

@@ -18,3 +18,9 @@ class Option:
     exercise_type: Literal["am", "eu"]
     strike_price: float
     maturity_date: datetime
+
+    def payoff(self, spot) -> float:
+        if self.option_type == "call":
+            return max(spot - self.strike_price, 0)
+        else:
+            return max(self.strike_price - spot, 0)

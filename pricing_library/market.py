@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from dataclasses import dataclass
 
 
@@ -21,3 +20,5 @@ class MarketData:
     spot_price: float
     dividend_price: float
     dividend_ex_date: datetime
+
+    #declaration des variables dans des classes
