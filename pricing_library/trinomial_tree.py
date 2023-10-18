@@ -52,13 +52,14 @@ class TrinomialTree:
         self.delta_t = abs(
             ((opt.maturity_date - self.pricing_date).days / self.n_steps) / self.n_days
         )
+        #print(f"Delta t " {self.delta_t})
         self.alpha = calculate_alpha(self.market.volatility, self.delta_t)
         self.discount_factor = calculate_discount_factor(
             self.market.interest_rate, self.delta_t
         )
         self.__build_tree()
         price = self.root.price(opt)
-        if draw_tree is True:
+        if draw_tree:
             self.__plot_tree()
         return price
 
@@ -162,7 +163,7 @@ class TrinomialTree:
 
     @measure_time
     def __plot_tree(
-        self, label_to_plot: Literal["spot_price", "option_price"] = "spot_price"
+        self, label_to_plot: Literal["spot_price", "option_price"] = "option_price"
     ) -> None:
         """Display the tree using networkx library. If the number of steps is greater than 20, the tree will be unreadable. This is a breadth-first tree traversal algorithm.
 

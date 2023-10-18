@@ -15,7 +15,7 @@ class Option:
     """
 
     option_type: Literal["call", "put"]
-    exercise_type: Literal["am", "eu"]
+    exercise_type: Literal["us", "eu"]
     strike_price: float
     maturity_date: datetime
 

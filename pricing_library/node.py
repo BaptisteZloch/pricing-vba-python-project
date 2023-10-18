@@ -88,6 +88,7 @@ class Node:
 
         if opt.exercise_type == "us":
             self.option_price = max(self.option_price, opt.payoff(self.spot_price))
+        # print(f'Option price: {self.option_price}')
         return self.option_price  # type: ignore
 
     def __check_conditions(self, tolerance: float = 1e-4) -> None:
