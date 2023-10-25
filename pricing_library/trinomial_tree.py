@@ -163,7 +163,7 @@ class TrinomialTree:
 
     @measure_time
     def __plot_tree(
-        self, label_to_plot: Literal["spot_price", "option_price"] = "option_price"
+        self, label_to_plot: Literal["spot_price", "option_price"] = "spot_price"
     ) -> None:
         """Display the tree using networkx library. If the number of steps is greater than 20, the tree will be unreadable. This is a breadth-first tree traversal algorithm.
 
