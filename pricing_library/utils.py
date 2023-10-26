@@ -50,6 +50,14 @@ def calculate_up_probability(down_probability: float, alpha: float) -> float:
     return down_probability / alpha
 
 
+def calculate_up_probability_w_dividend(
+    down_probability: float, alpha: float, forward_price: float, esperance: float
+) -> float:
+    return ((1 - alpha) ** (-1)) * (
+        (forward_price ^ (-1)) * esperance - 1 - ((alpha ^ (-1)) + 1) * down_probability
+    )  # down_probability / alpha
+
+
 def calculate_mid_probability(up_probability: float, down_probability: float) -> float:
     return 1 - (down_probability + up_probability)
 
