@@ -42,6 +42,7 @@ class Node:
             >= self.time_step
         ):
             self.esperance = self.forward_price
+
             self.forward_price: float = (
                 self.forward_price - self.tree.market.dividend_price
             )
@@ -52,6 +53,10 @@ class Node:
 
         self.up_price: float = self.tree.alpha * self.forward_price
         self.down_price: float = self.forward_price / self.tree.alpha
+
+        # print(
+        #     f"Esperance : {self.esperance}, Forward price : {self.forward_price}, {self.forward_price==self.esperance}"
+        # )
 
     def __calculate_probabilities(
         self, with_dividend: bool = False, force_check: bool = False
