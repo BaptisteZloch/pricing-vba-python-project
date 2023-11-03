@@ -52,7 +52,7 @@ class TrinomialTree:
         self.delta_t = abs(
             ((opt.maturity_date - self.pricing_date).days / self.n_steps) / self.n_days
         )
-        #print(f"Delta t " {self.delta_t})
+        # print(f"Delta t " {self.delta_t})
         self.alpha = calculate_alpha(self.market.volatility, self.delta_t)
         self.discount_factor = calculate_discount_factor(
             self.market.interest_rate, self.delta_t
