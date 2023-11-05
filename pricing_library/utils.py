@@ -53,8 +53,8 @@ def calculate_up_probability(down_probability: float, alpha: float) -> float:
 def calculate_up_probability_w_dividend(
     down_probability: float, alpha: float, forward_price: float, esperance: float
 ) -> float:
-    return ((1 - alpha) ** (-1)) * (
-        (forward_price ^ (-1)) * esperance - 1 - ((alpha ^ (-1)) + 1) * down_probability
+    return ((alpha-1) ** (-1)) * (
+        (forward_price ** (-1)) * esperance - 1 - ((alpha ** (-1)) - 1) * down_probability
     )  # down_probability / alpha
 
 
