@@ -74,11 +74,14 @@ class Node:
             self.tree.delta_t,
         )
         self.p_down = calculate_down_probability(
-            self.forward_price, self.esperance, self.variance, self.tree.alpha
+            self.esperance, self.forward_price, self.variance, self.tree.alpha
         )
         if with_dividend is True:
             self.p_up = calculate_up_probability_w_dividend(
-                self.p_down, self.tree.alpha, self.forward_price, self.esperance
+                self.p_down,
+                self.tree.alpha,
+                self.esperance,
+                self.forward_price,
             )
         else:
             self.p_up = calculate_up_probability(self.p_down, self.tree.alpha)

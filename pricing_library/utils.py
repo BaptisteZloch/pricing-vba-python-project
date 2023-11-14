@@ -1,7 +1,6 @@
 from math import exp, sqrt, log
 from time import time
-from typing import Callable, Optional
-import networkx as nx
+from typing import Callable
 
 
 def discount_value(
@@ -23,7 +22,7 @@ def calculate_forward_price(
 
 
 def calculate_alpha(volatility: float, delta_t: float, factor: int = 3) -> float:
-    return exp(volatility * sqrt(factor * delta_t))  # type: ignore
+    return exp(volatility * sqrt(factor * delta_t))
 
 
 def calculate_variance(
@@ -37,12 +36,12 @@ def calculate_variance(
 
 
 def calculate_down_probability(
-    forward_price: float, esperance: float, variance: float, alpha: float
+    esperance: float, forward_price: float, variance: float, alpha: float
 ) -> float:
     return (
-        (forward_price ** (-2)) * (variance + esperance**2)
+        (esperance ** (-2)) * (variance + forward_price**2)
         - 1
-        - (alpha + 1) * ((forward_price ** (-1)) * esperance - 1)
+        - (alpha + 1) * ((esperance ** (-1)) * forward_price - 1)
     ) / ((1 - alpha) * ((alpha ** (-2)) - 1))
 
 
@@ -51,11 +50,16 @@ def calculate_up_probability(down_probability: float, alpha: float) -> float:
 
 
 def calculate_up_probability_w_dividend(
-    down_probability: float, alpha: float, forward_price: float, esperance: float
+    down_probability: float,
+    alpha: float,
+    esperance: float,
+    forward_price: float,
 ) -> float:
-    return ((alpha-1) ** (-1)) * (
-        (forward_price ** (-1)) * esperance - 1 - ((alpha ** (-1)) - 1) * down_probability
-    )  # down_probability / alpha
+    return ((alpha - 1) ** (-1)) * (
+        (esperance ** (-1)) * forward_price
+        - 1
+        - ((alpha ** (-1)) - 1) * down_probability
+    )
 
 
 def calculate_mid_probability(up_probability: float, down_probability: float) -> float:
