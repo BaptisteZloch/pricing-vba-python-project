@@ -27,8 +27,9 @@ class Greeks:
         -----
             float: The delta of an option for the given market and pricing date.
         """
+        # we compute the market spot price + h and spot price - h
         mkt_spot_up, mkt_spot_down = mkt.spot_price * (1 + h), mkt.spot_price * (1 - h)
-
+        # we compute all the prices needed to compute the delta
         price_up = TrinomialTree(
             Market(
                 mkt.interest_rate,
@@ -51,7 +52,7 @@ class Greeks:
             pricing_date,
             n_steps,
         ).price(opt)
-
+        # compute the delta
         return (price_up - price_down) / (mkt_spot_up - mkt_spot_down)
 
     @staticmethod
@@ -76,8 +77,9 @@ class Greeks:
         -----
             float: The gamma of an option for the given market and pricing date.
         """
+        # we compute the market spot price + h and spot price - h
         mkt_spot_up, mkt_spot_down = mkt.spot_price * (1 + h), mkt.spot_price * (1 - h)
-
+        # we compute all the prices needed to compute the gamma
         price_up = TrinomialTree(
             Market(
                 mkt.interest_rate,
@@ -111,9 +113,10 @@ class Greeks:
             pricing_date,
             n_steps,
         ).price(opt)
+        # we compute the delta for the spot price + h and spot price - h
         delta_up = (price_up - price_mid) / (mkt_spot_up - mkt.spot_price)
         delta_down = (price_mid - price_down) / (mkt.spot_price - mkt_spot_down)
-
+        # compute the gamma
         return (delta_up - delta_down) / (mkt_spot_up - mkt_spot_down) ** 2
 
     @staticmethod
@@ -123,7 +126,7 @@ class Greeks:
         pricing_date: datetime,
         opt: Option,
         h: float = 0.01,
-    ):
+    ) -> float:
         """Compute the vega of an option for a given market and a given pricing date.
 
         Args:
@@ -138,8 +141,9 @@ class Greeks:
         -----
             float: _description_
         """
+        # we compute the market volatility + h and volatility - h
         mkt_vol_up, mkt_vol_down = mkt.volatility * (1 + h), mkt.volatility * (1 - h)
-
+        # we compute all the prices needed to compute the vega
         price_up = TrinomialTree(
             Market(
                 mkt.interest_rate,
@@ -162,5 +166,5 @@ class Greeks:
             pricing_date,
             n_steps,
         ).price(opt)
-
+        # compute the vega
         return (price_up - price_down) / (mkt_vol_up - mkt_vol_down)

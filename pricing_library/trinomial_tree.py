@@ -52,13 +52,13 @@ class TrinomialTree:
         self.delta_t = abs(
             ((opt.maturity_date - self.pricing_date).days / self.n_steps) / self.n_days
         )
-        # print(f"Delta t " {self.delta_t})
+        # calculate alpha and discount factor
         self.alpha = calculate_alpha(self.market.volatility, self.delta_t)
         self.discount_factor = calculate_discount_factor(
             self.market.interest_rate, self.delta_t
         )
-        self.__build_tree()
-        price = self.root.price(opt)
+        self.__build_tree()  # first we need to build the tree before pricing
+        price = self.root.price(opt)  # price the option
         if draw_tree:
             self.__plot_tree()
         return price
@@ -69,6 +69,7 @@ class TrinomialTree:
         self.root = Node(self.market.spot_price, self, self.pricing_date)
         current_mid = self.root
         current_date = self.pricing_date
+        # iterate over the number of steps to construct the nodes generation
         for _ in tqdm(
             range(self.n_steps),
             total=self.n_steps,
@@ -92,20 +93,22 @@ class TrinomialTree:
         -----
             Node: The new mid (trunc) node.
         """
+        # first compute the next mid generation
         self.__compute_next_nodes(prev_trunc_node, date_time)
 
+        # then construct the next upper generations until the node has no upper node
         current_upper_neighbours = prev_trunc_node.node_up
         while current_upper_neighbours is not None:
             self.__compute_next_nodes_upward(current_upper_neighbours, date_time)
             current_upper_neighbours = current_upper_neighbours.node_up
 
         current_lower_neighbours = prev_trunc_node.node_down
-
+        # then construct the next lower generations until the node has no lower node
         while current_lower_neighbours is not None:
             self.__compute_next_nodes_downward(current_lower_neighbours, date_time)
             current_lower_neighbours = current_lower_neighbours.node_down
 
-        return prev_trunc_node.next_mid_node  # type: ignore
+        return prev_trunc_node.next_mid_node
 
     def __compute_next_nodes(
         self, current_node: Node, date_time: Optional[datetime] = None
@@ -117,17 +120,31 @@ class TrinomialTree:
             current_node (Node): The current node.
             date_time (Optional[datetime], optional): The date associated with the current generation it depends on delta t and starting date. Defaults to None.
         """
-        n = Node(current_node.forward_price, self, date_time)
-        current_node.next_mid_node = n
-        n_up = Node(current_node.up_price, self, date_time)
-        current_node.next_upper_node = n_up
-        current_node.next_upper_node.node_down = n
-        n.node_up = n_up
+        n = Node(
+            current_node.forward_price, self, date_time
+        )  # create the next mid node
+        current_node.next_mid_node = n  # link the current node to the next mid node
+        n_up = Node(
+            current_node.up_price, self, date_time
+        )  # create the next upper node
+        current_node.next_upper_node = (
+            n_up  # link the current node to the next upper node
+        )
+        current_node.next_upper_node.node_down = (
+            n  # link the next upper node to the next mid node
+        )
+        n.node_up = n_up  # link the next mid node to the next upper node
 
-        n_down = Node(current_node.down_price, self, date_time)
-        current_node.next_lower_node = n_down
-        current_node.next_lower_node.node_up = n
-        n.node_down = n_down
+        n_down = Node(
+            current_node.down_price, self, date_time
+        )  # create the next lower node
+        current_node.next_lower_node = (
+            n_down  # link the current node to the next lower node
+        )
+        current_node.next_lower_node.node_up = (
+            n  # link the next lower node to the next mid node
+        )
+        n.node_down = n_down  # link the next mid node to the next lower node
 
     def __compute_next_nodes_upward(
         self, current_node: Node, date_time: Optional[datetime] = None

@@ -22,6 +22,7 @@ class Node:
     nb_nodes = 0  # Static variable to count the number of nodes created
     option_price: Optional[float] = None
 
+    # constructor
     def __init__(
         self,
         spot_price: float,
@@ -35,6 +36,7 @@ class Node:
         self.forward_price: float = calculate_forward_price(
             self.spot_price, tree.market.interest_rate, self.tree.delta_t
         )
+        # check for a dividend date
         if (
             self.time_step is not None
             and self.time_step + timedelta(days=self.tree.delta_t * self.tree.n_days)
@@ -50,13 +52,9 @@ class Node:
         else:
             self.esperance = self.forward_price
             self.__calculate_probabilities()
-
+        # compute the next up and down price from the forward mid price using alpha
         self.up_price: float = self.tree.alpha * self.forward_price
         self.down_price: float = self.forward_price / self.tree.alpha
-
-        # print(
-        #     f"Esperance : {self.esperance}, Forward price : {self.forward_price}, {self.forward_price==self.esperance}"
-        # )
 
     def __calculate_probabilities(
         self, with_dividend: bool = False, force_check: bool = False
@@ -76,6 +74,7 @@ class Node:
         self.p_down = calculate_down_probability(
             self.esperance, self.forward_price, self.variance, self.tree.alpha
         )
+        # if there is a dividend the up probability is calculated differently
         if with_dividend is True:
             self.p_up = calculate_up_probability_w_dividend(
                 self.p_down,
@@ -85,11 +84,12 @@ class Node:
             )
         else:
             self.p_up = calculate_up_probability(self.p_down, self.tree.alpha)
-
+        # solve for the mid probability to get the probabilities sum to 1
         self.p_mid = calculate_mid_probability(self.p_up, self.p_down)
         if force_check is True:
             self.__check_conditions()
 
+    # main pricing function
     def price(self, opt: Option) -> float:
         """This function will recursively compute the price of the option at the current node. If the option is a european option, the price will be computed only once. If the option is an american option, the price will be computed at each node and the payoff will be taken into account
 
@@ -102,16 +102,18 @@ class Node:
         if self.next_mid_node is None:  # End of tree -> leaf
             self.option_price = opt.payoff(self.spot_price)
         elif self.option_price is None:
+            # compute the price of the option at the current node from the next nodes
             self.option_price = self.tree.discount_factor * (
                 self.p_up * self.next_upper_node.price(opt)
                 + self.p_mid * self.next_mid_node.price(opt)
                 + self.p_down * self.next_lower_node.price(opt)
             )
-
+        # whether it is an american option or not the payoff is calculated differently
         if opt.exercise_type == "us":
             self.option_price = max(self.option_price, opt.payoff(self.spot_price))
         return self.option_price  # type: ignore
 
+    # sanity check
     def __check_conditions(self, tolerance: float = 1e-4) -> None:
         assert (
             tolerance > 0 and tolerance < 1
@@ -142,15 +144,7 @@ class Node:
         ), f"Generation {self.time_step} | Prices second order must be the variance | second_moment: {second_moment} variance: {self.variance+ self.forward_price**2}"
 
     def __str__(self) -> str:
-        result_str = f"Node<spot price: {self.spot_price:.2f}, next mid price: : {self.forward_price:.2f}, next up price: {self.up_price:.2f}, next down price: {self.down_price:.2f}, variance: {self.variance:.2f}, p down: {self.p_down:.2f}, p mid: {self.p_mid:.2f}, p up: {self.p_up:.2f}, current date: {self.time_step}, option value: {self.option_price:.2f}"
-        if self.next_mid_node is not None:
-            result_str += f"\n next mid node: {self.next_mid_node}"
-        if self.next_lower_node is not None:
-            result_str += f"\n next lower node: {self.next_lower_node}"
-        if self.next_upper_node is not None:
-            result_str += f"\n next upper node: {self.next_upper_node}"
-        result_str += ">"
-        return result_str
+        return f"Node<spot price: {self.spot_price:.2f}, next mid price: : {self.forward_price:.2f}, next up price: {self.up_price:.2f}, next down price: {self.down_price:.2f}, variance: {self.variance:.2f}, p down: {self.p_down:.2f}, p mid: {self.p_mid:.2f}, p up: {self.p_up:.2f}, current date: {self.time_step}, option value: {self.option_price:.2f}>"
 
     def __repr__(self) -> str:
         return f"Node<spot price: {self.spot_price:.2f}, next mid price: : {self.forward_price:.2f}, next up price: {self.up_price:.2f}, next down price: {self.down_price:.2f}, variance: {self.variance:.2f}, p down: {self.p_down:.2f}, p mid: {self.p_mid:.2f}, p up: {self.p_up:.2f}, current date: {self.time_step}, option value: {self.option_price:.2f}>"

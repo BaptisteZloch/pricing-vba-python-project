@@ -19,7 +19,15 @@ class Option:
     strike_price: float
     maturity_date: datetime
 
-    def payoff(self, spot) -> float:
+    def payoff(self, spot: float) -> float:
+        """Compute the payoff of the option.
+
+        Args:
+            spot (float): The final spot price of the underlying asset.
+
+        Returns:
+            float: The payoff of the option.
+        """
         if self.option_type == "call":
             return max(spot - self.strike_price, 0)
         else:
