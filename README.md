@@ -2,6 +2,7 @@
 
 ## A propos
 Projet de construction d'un outil de pricing en utilisant un arbre trinomial d'options americaines et europeennes en VBA et répliqué en Python. Le tout en utilisant la programmation objet.
+
 Projet de groupe réalisé par : CADIOU Titouan & ZLOCH Baptiste.
 
 ## Construction
